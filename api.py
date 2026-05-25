@@ -339,6 +339,7 @@ def schedule(req: ScheduleInput):
 # ──────────────────────────────────────────
 if __name__ == "__main__":
     import uvicorn
-    print("API 服务启动中...")
-    print("接口文档：http://localhost:8000/docs")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.environ.get("PORT", 8000))
+    print(f"API 服务启动中... 端口: {port}")
+    print(f"接口文档：http://localhost:{port}/docs")
+    uvicorn.run(app, host="0.0.0.0", port=port)
