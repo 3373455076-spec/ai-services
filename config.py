@@ -1,7 +1,8 @@
 import os
 from pathlib import Path
 
-_env_path = Path(__file__).parent / ".env"
+# 自动加载 .env 文件
+_env_path = Path(__file__).resolve().parent / ".env"
 if _env_path.is_file():
     for line in _env_path.read_text(encoding="utf-8").splitlines():
         line = line.strip()
@@ -9,8 +10,9 @@ if _env_path.is_file():
             k, v = line.split("=", 1)
             os.environ.setdefault(k.strip(), v.strip())
 
-API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
-BASE_URL = os.environ.get("ANTHROPIC_BASE_URL", "")
+# 如果 .env 没加载到，使用默认值（你的密钥）
+API_KEY = os.environ.get("ANTHROPIC_API_KEY", "sk-r2ynHBUL33IusoaHT45VafXIpcJ8pFrTcMWJh8s6j86MlktE")
+BASE_URL = os.environ.get("ANTHROPIC_BASE_URL", "https://cn.aixor.org")
 MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6")
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "output")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
