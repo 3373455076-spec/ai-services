@@ -222,11 +222,11 @@ async def english_polish(request: Request):
     system = (
         "你是英语写作专家。润色用户的英文文稿。"
         "请以纯JSON格式返回，不要包含markdown代码块，"
-        "键为：polished_text(润色后完整文本), "
-        "comparisons(数组，每项含original, revised, reason), "
-        "overall_score(评分如85/100), tips(3条提升建议数组)"
+        "键为：polished_text(润色后全文), "
+        "comparisons(最多5句，每项含original, revised, reason), "
+        "overall_score(评分如85/100), tips(2条建议数组)"
     )
-    raw = chat(system, f"目标场景：{scene}\n期望水平：{level}\n\n请润色以下英文文稿：\n{text}")
+    raw = chat(system, f"场景：{scene}\n水平：{level}\n\n原文：\n{text}", max_tokens=2048)
     result = json.loads(raw)
     comps = result.get("comparisons", [])
     path = create_comparison_doc(
