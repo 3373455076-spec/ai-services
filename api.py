@@ -187,14 +187,14 @@ async def ppt_outline(request: Request):
     data = await _parse(request)
     topic = _get(data, "主题", "topic")
     scene = _get(data, "用途", "scene", default="课堂汇报")
-    page_count = _get(data, "页数", "page_count", default="15")
+    page_count = _get(data, "页数", "page_count", default="10")
     system = (
-        "你是PPT内容策划专家。根据主题、用途和页数生成完整的PPT逐页内容文稿。"
+        "你是PPT策划专家。根据主题生成PPT逐页内容。"
         "请以纯JSON格式返回，不要包含markdown代码块，"
-        "键为：title(演示标题), pages(数组，每项含page_num, page_title, "
-        "bullet_points(要点数组), speaker_notes(演讲备注))"
+        "键为：title(标题), pages(数组，每项含page_num, page_title, "
+        "bullet_points(3个要点), speaker_notes(一句备注))"
     )
-    raw = chat(system, f"主题：{topic}\n用途场景：{scene}\n期望页数：{page_count}")
+    raw = chat(system, f"主题：{topic}\n用途：{scene}\n页数：{page_count}", max_tokens=2048)
     result = json.loads(raw)
     sections = []
     for p in result.get("pages", []):
