@@ -32,6 +32,33 @@ app = FastAPI(
 )
 
 
+@app.get("/", summary="健康检查")
+def health():
+    return {"status": "ok", "services": 10}
+
+
+ENDPOINT_INFO = {
+    "resume": {"name": "简历优化", "fields": {"resume_text": "简历原文", "target_job": "目标岗位"}},
+    "xiaohongshu": {"name": "小红书文案", "fields": {"keywords": "关键词", "style": "风格(种草/测评/攻略/日常分享)"}},
+    "excel": {"name": "Excel数据处理", "fields": {"headers": "表头数组", "rows": "数据二维数组", "instruction": "处理需求"}},
+    "ppt": {"name": "PPT大纲", "fields": {"topic": "主题", "scene": "用途", "page_count": "页数"}},
+    "english": {"name": "英语润色", "fields": {"text": "英文原稿", "scene": "场景", "level": "期望水平"}},
+    "summary": {"name": "工作总结", "fields": {"work_points": "工作要点", "job_title": "岗位", "audience": "汇报对象"}},
+    "paper": {"name": "论文降重", "fields": {"paper_text": "论文文本"}},
+    "quiz": {"name": "题库解析", "fields": {"questions_text": "题目", "subject": "学科", "exam_type": "考试类型"}},
+    "poster": {"name": "海报文案", "fields": {"event_name": "活动名", "time_location": "时间地点", "audience": "受众", "selling_point": "卖点", "style": "风格"}},
+    "schedule": {"name": "日程规划", "fields": {"todo_items": "待办事项", "time_slots": "可用时间", "priorities": "优先级偏好"}},
+}
+
+
+@app.get("/api/{service_name}", summary="查看接口说明")
+def get_service_info(service_name: str):
+    info = ENDPOINT_INFO.get(service_name)
+    if not info:
+        return {"error": "服务不存在", "available": list(ENDPOINT_INFO.keys())}
+    return {"service": info["name"], "method": "POST", "fields": info["fields"]}
+
+
 def _ts():
     return int(time.time())
 
