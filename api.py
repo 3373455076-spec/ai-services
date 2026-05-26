@@ -11,6 +11,7 @@ import json
 import time
 import os
 import sys
+import traceback
 
 sys.path.insert(0, os.path.dirname(__file__))
 
@@ -30,6 +31,13 @@ app = FastAPI(
     description="10 项 AI 服务，输入需求，返回成品文件",
     version="1.0.0",
 )
+
+
+@app.exception_handler(Exception)
+async def global_error_handler(request, exc):
+    tb = traceback.format_exc()
+    print(f"[ERROR] {exc}\n{tb}")
+    return JSONResponse(status_code=500, content={"error": str(exc)})
 
 
 @app.get("/", summary="健康检查")
