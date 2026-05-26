@@ -273,14 +273,18 @@ async def work_summary(request: Request):
 async def paper_rewrite(request: Request):
     data = await _parse(request)
     paper_text = _get(data, "论文文本", "paper_text")
+    if not paper_text.strip():
+        return JSONResponse(status_code=400, content={"error": "论文文本不能为空"})
     system = (
-        "你是学术论文降重专家。对用户提供的论文文本进行降重改写，保持原意不变，"
-        "调整句式结构与用词，显著降低重复率。请以纯JSON格式返回，不要包含markdown代码块，"
-        "键为：rewritten_paragraphs(数组，每项含original和rewritten两个字段，按段落逐段改写)"
+        "你是学术论文降重专家。改写文本，保持原意，调整句式和用词。"
+        "请以纯JSON格式返回，不要包含markdown代码块，"
+        "键为：rewritten_paragraphs(数组，每项含original和rewritten)"
     )
-    raw = chat(system, paper_text)
+    raw = chat(system, paper_text, max_tokens=2048)
     result = json.loads(raw)
     paragraphs = result.get("rewritten_paragraphs", [])
+    if not paragraphs:
+        return JSONResponse(content={"error": "未能解析改写结果"})
     sections = []
     for i, item in enumerate(paragraphs, 1):
         sections.append({"heading": f"段落 {i}", "content": item.get("rewritten", ""), "style": "blue"})
