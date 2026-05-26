@@ -138,8 +138,24 @@ async def excel_process(request: Request):
     headers_raw = _get(data, "表头", "headers")
     rows_raw = _get(data, "数据行", "rows")
     instruction = _get(data, "处理需求", "instruction")
-    headers = json.loads(headers_raw) if isinstance(headers_raw, str) else headers_raw
-    rows = json.loads(rows_raw) if isinstance(rows_raw, str) else rows_raw
+    if isinstance(headers_raw, str) and headers_raw.strip():
+        try:
+            headers = json.loads(headers_raw)
+        except json.JSONDecodeError:
+            headers = [h.strip() for h in headers_raw.split(",")]
+    elif isinstance(headers_raw, list):
+        headers = headers_raw
+    else:
+        headers = ["列1", "列2", "列3"]
+    if isinstance(rows_raw, str) and rows_raw.strip():
+        try:
+            rows = json.loads(rows_raw)
+        except json.JSONDecodeError:
+            rows = [[c.strip() for c in r.split(",")] for r in rows_raw.strip().split("\n") if r.strip()]
+    elif isinstance(rows_raw, list):
+        rows = rows_raw
+    else:
+        rows = []
     system = (
         "你是数据分析专家。用户提供了Excel数据的表头和样本数据，以及处理需求。"
         "请以纯JSON格式返回处理后的数据，不要包含markdown代码块，"
