@@ -31,7 +31,7 @@ def _extract_json(text: str) -> str:
     return text
 
 
-def chat(system: str, user: str, max_tokens: int = 8192) -> str:
+def chat(system: str, user: str, max_tokens: int = 4096) -> str:
     resp = get_client().messages.create(
         model=MODEL,
         max_tokens=max_tokens,
