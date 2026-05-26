@@ -304,17 +304,26 @@ async def quiz_solver(request: Request):
     questions_text = _get(data, "题目内容", "questions_text")
     subject = _get(data, "学科", "subject")
     exam_type = _get(data, "考试类型", "exam_type", default="")
+    if not questions_text.strip():
+        return JSONResponse(status_code=400, content={"error": "题目内容不能为空"})
     system = (
-        "你是教育辅导专家。解答用户提供的题目，给出详细解析。请以纯JSON格式返回，"
+        "你是教育辅导专家。解答题目，给出详细解析。请以纯JSON格式返回，"
         "不要包含markdown代码块，键为：questions(数组，每项含number, question, answer, "
-        "analysis(分步解题过程), knowledge(知识点归纳与易错提醒))"
+        "analysis(解题过程), knowledge(知识点))"
     )
-    raw = chat(system, f"学科：{subject}\n考试类型：{exam_type}\n\n题目内容：\n{questions_text}")
+    raw = chat(system, f"学科：{subject}\n考试类型：{exam_type}\n\n题目：\n{questions_text}", max_tokens=2048)
     result = json.loads(raw)
     questions = result.get("questions", [])
     title = " · ".join(filter(None, [subject, exam_type, "题库解析"]))
-    path = create_quiz_pdf(f"quiz_{_ts()}.pdf", title, questions)
-    return FileResponse(path, filename="题库解析.pdf", media_type="application/pdf")
+    sections = []
+    for q in questions:
+        sections.append({
+            "heading": f"第 {q.get('number', '')} 题：{q.get('question', '')}",
+            "content": f"【答案】{q.get('answer', '')}\n\n【解析】{q.get('analysis', '')}\n\n【知识点】{q.get('knowledge', '')}",
+        })
+    path = create_doc(f"quiz_{_ts()}.docx", title, sections)
+    return FileResponse(path, filename="题库解析.docx",
+                        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
 
 
 # ──────────────────────────────────────────
@@ -328,29 +337,33 @@ async def poster_copy(request: Request):
     audience = _get(data, "目标受众", "audience")
     selling_point = _get(data, "核心卖点", "selling_point")
     style = _get(data, "风格", "style", default="活泼")
+    if not event_name.strip():
+        return JSONResponse(status_code=400, content={"error": "活动名称不能为空"})
     system = (
-        "你是活动策划与文案专家。根据活动信息生成海报文案和推广文案。"
+        "你是文案专家。根据活动信息生成海报文案和推广文案。"
         "请以纯JSON格式返回，不要包含markdown代码块，"
-        "键为：main_title(海报主标题，6字以内), subtitle(副标题), "
-        "poster_body(海报正文150字以内), long_copy(推文版文案300-500字), "
-        "moments_copies(3条朋友圈转发短文案数组), event_info(活动时间地点信息，用换行分隔)"
+        "键为：main_title(主标题6字以内), subtitle(副标题), "
+        "poster_body(正文150字以内), long_copy(推文300-500字), "
+        "moments_copies(3条朋友圈短文案数组)"
     )
     user_msg = (
-        f"活动名称：{event_name}\n时间和地点：{time_location}\n"
-        f"目标受众：{audience}\n核心卖点：{selling_point}\n风格：{style}"
+        f"活动：{event_name}\n时间地点：{time_location}\n"
+        f"受众：{audience}\n卖点：{selling_point}\n风格：{style}"
     )
-    raw = chat(system, user_msg)
+    raw = chat(system, user_msg, max_tokens=2048)
     result = json.loads(raw)
-    ts = _ts()
-    png_path = create_poster(
-        f"poster_{ts}.png", result["main_title"], result["subtitle"],
-        result["poster_body"], event_info=result.get("event_info", ""),
-    )
-    with open(png_path, "rb") as f:
-        img_bytes = f.read()
-    resp = Response(content=img_bytes, media_type="image/png")
-    resp.headers["Content-Disposition"] = "attachment; filename=poster.png"
-    return resp
+    sections = [
+        {"heading": "海报主标题", "content": result.get("main_title", "")},
+        {"heading": "副标题", "content": result.get("subtitle", "")},
+        {"heading": "海报正文", "content": result.get("poster_body", "")},
+        {"heading": "推文版文案", "content": result.get("long_copy", "")},
+        {"heading": "朋友圈短文案", "content": "\n".join(
+            f"{i}. {c}" for i, c in enumerate(result.get("moments_copies", []), 1)
+        )},
+    ]
+    path = create_doc(f"poster_{_ts()}.docx", f"{event_name} — 宣传文案", sections)
+    return FileResponse(path, filename="海报文案.docx",
+                        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
 
 
 # ──────────────────────────────────────────
