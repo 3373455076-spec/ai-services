@@ -15,8 +15,8 @@ import sys
 sys.path.insert(0, os.path.dirname(__file__))
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
-from pydantic import BaseModel, Field
+from fastapi.responses import FileResponse, JSONResponse
+from pydantic import BaseModel, Field, ConfigDict
 
 from ai_client import chat
 from formatters.word import create_doc, create_resume_doc, create_comparison_doc
@@ -37,26 +37,9 @@ def health():
     return {"status": "ok", "services": 10}
 
 
-ENDPOINT_INFO = {
-    "resume": {"name": "简历优化", "fields": {"resume_text": "简历原文", "target_job": "目标岗位"}},
-    "xiaohongshu": {"name": "小红书文案", "fields": {"keywords": "关键词", "style": "风格(种草/测评/攻略/日常分享)"}},
-    "excel": {"name": "Excel数据处理", "fields": {"headers": "表头数组", "rows": "数据二维数组", "instruction": "处理需求"}},
-    "ppt": {"name": "PPT大纲", "fields": {"topic": "主题", "scene": "用途", "page_count": "页数"}},
-    "english": {"name": "英语润色", "fields": {"text": "英文原稿", "scene": "场景", "level": "期望水平"}},
-    "summary": {"name": "工作总结", "fields": {"work_points": "工作要点", "job_title": "岗位", "audience": "汇报对象"}},
-    "paper": {"name": "论文降重", "fields": {"paper_text": "论文文本"}},
-    "quiz": {"name": "题库解析", "fields": {"questions_text": "题目", "subject": "学科", "exam_type": "考试类型"}},
-    "poster": {"name": "海报文案", "fields": {"event_name": "活动名", "time_location": "时间地点", "audience": "受众", "selling_point": "卖点", "style": "风格"}},
-    "schedule": {"name": "日程规划", "fields": {"todo_items": "待办事项", "time_slots": "可用时间", "priorities": "优先级偏好"}},
-}
-
-
 @app.get("/api/{service_name}", summary="查看接口说明")
 def get_service_info(service_name: str):
-    info = ENDPOINT_INFO.get(service_name)
-    if not info:
-        return {"error": "服务不存在", "available": list(ENDPOINT_INFO.keys())}
-    return {"service": info["name"], "method": "POST", "fields": info["fields"]}
+    return {"service": service_name, "method": "POST", "hint": "请使用 POST 方法调用此接口"}
 
 
 def _ts():
@@ -67,8 +50,9 @@ def _ts():
 # 1. 简历优化
 # ──────────────────────────────────────────
 class ResumeInput(BaseModel):
-    resume_text: str = Field(..., description="简历原文")
-    target_job: str = Field(..., description="目标岗位名称")
+    model_config = ConfigDict(populate_by_name=True)
+    resume_text: str = Field(..., alias="简历原文")
+    target_job: str = Field(..., alias="求职岗位")
 
 @app.post("/api/resume", summary="1. 简历优化", tags=["求职办公"])
 def resume(req: ResumeInput):
@@ -91,8 +75,9 @@ def resume(req: ResumeInput):
 # 2. 小红书文案
 # ──────────────────────────────────────────
 class XhsInput(BaseModel):
-    keywords: str = Field(..., description="产品/话题关键词")
-    style: str = Field("种草", description="风格：种草/测评/攻略/日常分享")
+    model_config = ConfigDict(populate_by_name=True)
+    keywords: str = Field(..., alias="关键词")
+    style: str = Field("种草", alias="风格")
 
 @app.post("/api/xiaohongshu", summary="2. 小红书爆款文案", tags=["文案创作"])
 def xiaohongshu(req: XhsInput):
@@ -123,9 +108,10 @@ def xiaohongshu(req: XhsInput):
 # 3. Excel 数据处理
 # ──────────────────────────────────────────
 class ExcelInput(BaseModel):
-    headers: list[str] = Field(..., description="表头列名")
-    rows: list[list] = Field(..., description="数据行（二维数组）")
-    instruction: str = Field(..., description="处理需求（一句话）")
+    model_config = ConfigDict(populate_by_name=True)
+    headers: list[str] = Field(..., alias="表头")
+    rows: list[list] = Field(..., alias="数据行")
+    instruction: str = Field(..., alias="处理需求")
 
 @app.post("/api/excel", summary="3. Excel 数据处理", tags=["数据处理"])
 def excel_process(req: ExcelInput):
@@ -156,9 +142,10 @@ def excel_process(req: ExcelInput):
 # 4. PPT 大纲
 # ──────────────────────────────────────────
 class PPTInput(BaseModel):
-    topic: str = Field(..., description="演示主题")
-    scene: str = Field("课堂汇报", description="用途：课堂汇报/工作述职/产品介绍")
-    page_count: int = Field(15, description="期望页数 10-20")
+    model_config = ConfigDict(populate_by_name=True)
+    topic: str = Field(..., alias="主题")
+    scene: str = Field("课堂汇报", alias="用途")
+    page_count: int = Field(15, alias="页数")
 
 @app.post("/api/ppt", summary="4. PPT 大纲生成", tags=["求职办公"])
 def ppt_outline(req: PPTInput):
@@ -188,9 +175,10 @@ def ppt_outline(req: PPTInput):
 # 5. 英语润色
 # ──────────────────────────────────────────
 class EnglishInput(BaseModel):
-    text: str = Field(..., description="英文原稿")
-    scene: str = Field("雅思", description="场景：四六级/雅思/商务邮件/学术论文")
-    level: str = Field("高水平", description="期望水平：B2/C1/native-like")
+    model_config = ConfigDict(populate_by_name=True)
+    text: str = Field(..., alias="英文原稿")
+    scene: str = Field("雅思", alias="场景")
+    level: str = Field("高水平", alias="期望水平")
 
 @app.post("/api/english", summary="5. 英语润色", tags=["外语优化"])
 def english_polish(req: EnglishInput):
@@ -220,9 +208,10 @@ def english_polish(req: EnglishInput):
 # 6. 工作总结
 # ──────────────────────────────────────────
 class SummaryInput(BaseModel):
-    work_points: str = Field(..., description="工作要点（关键词或流水账）")
-    job_title: str = Field(..., description="岗位名称")
-    audience: str = Field("直属领导", description="汇报对象：直属领导/部门总监/CEO")
+    model_config = ConfigDict(populate_by_name=True)
+    work_points: str = Field(..., alias="工作要点")
+    job_title: str = Field(..., alias="岗位名称")
+    audience: str = Field("直属领导", alias="汇报对象")
 
 @app.post("/api/summary", summary="6. 工作总结撰写", tags=["求职办公"])
 def work_summary(req: SummaryInput):
@@ -246,7 +235,8 @@ def work_summary(req: SummaryInput):
 # 7. 论文降重
 # ──────────────────────────────────────────
 class PaperInput(BaseModel):
-    paper_text: str = Field(..., description="需要降重的论文文本")
+    model_config = ConfigDict(populate_by_name=True)
+    paper_text: str = Field(..., alias="论文文本")
 
 @app.post("/api/paper", summary="7. 论文降重改写", tags=["学业学习"])
 def paper_rewrite(req: PaperInput):
@@ -272,9 +262,10 @@ def paper_rewrite(req: PaperInput):
 # 8. 题库解析
 # ──────────────────────────────────────────
 class QuizInput(BaseModel):
-    questions_text: str = Field(..., description="题目内容")
-    subject: str = Field(..., description="学科（数学/物理/英语...）")
-    exam_type: str = Field("", description="考试类型（高考/考研/期末...）")
+    model_config = ConfigDict(populate_by_name=True)
+    questions_text: str = Field(..., alias="题目内容")
+    subject: str = Field(..., alias="学科")
+    exam_type: str = Field("", alias="考试类型")
 
 @app.post("/api/quiz", summary="8. 题库解析答题", tags=["学业学习"])
 def quiz_solver(req: QuizInput):
@@ -295,11 +286,12 @@ def quiz_solver(req: QuizInput):
 # 9. 海报文案
 # ──────────────────────────────────────────
 class PosterInput(BaseModel):
-    event_name: str = Field(..., description="活动名称")
-    time_location: str = Field(..., description="时间和地点")
-    audience: str = Field(..., description="目标受众")
-    selling_point: str = Field(..., description="核心卖点")
-    style: str = Field("活泼", description="风格：正式/活泼/文艺")
+    model_config = ConfigDict(populate_by_name=True)
+    event_name: str = Field(..., alias="活动名称")
+    time_location: str = Field(..., alias="时间地点")
+    audience: str = Field(..., alias="目标受众")
+    selling_point: str = Field(..., alias="核心卖点")
+    style: str = Field("活泼", alias="风格")
 
 @app.post("/api/poster", summary="9. 海报文案生成", tags=["文案创作"])
 def poster_copy(req: PosterInput):
@@ -321,13 +313,10 @@ def poster_copy(req: PosterInput):
         f"poster_{ts}.png", data["main_title"], data["subtitle"],
         data["poster_body"], event_info=data.get("event_info", ""),
     )
-    # 同时返回文案文本作为 JSON header
     from starlette.responses import Response
     with open(png_path, "rb") as f:
         img_bytes = f.read()
     resp = Response(content=img_bytes, media_type="image/png")
-    resp.headers["X-Long-Copy"] = data.get("long_copy", "")[:500]
-    resp.headers["X-Moments-1"] = data.get("moments_copies", [""])[0][:200]
     resp.headers["Content-Disposition"] = "attachment; filename=poster.png"
     return resp
 
@@ -336,9 +325,10 @@ def poster_copy(req: PosterInput):
 # 10. 日程规划
 # ──────────────────────────────────────────
 class ScheduleInput(BaseModel):
-    todo_items: str = Field(..., description="待办事项（逗号分隔）")
-    time_slots: str = Field(..., description="可用时间段（如 09:00-12:00, 14:00-18:00）")
-    priorities: str = Field("", description="优先级偏好")
+    model_config = ConfigDict(populate_by_name=True)
+    todo_items: str = Field(..., alias="待办事项")
+    time_slots: str = Field(..., alias="可用时间")
+    priorities: str = Field("", alias="优先级偏好")
 
 @app.post("/api/schedule", summary="10. 日程规划", tags=["数据处理"])
 def schedule(req: ScheduleInput):
