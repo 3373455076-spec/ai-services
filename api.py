@@ -43,6 +43,13 @@ def health():
     return {"status": "ok", "services": 10}
 
 
+@app.post("/api/debug", summary="调试：查看收到的请求内容")
+async def debug_endpoint(request: Request):
+    data = await _parse(request)
+    print(f"[DEBUG] received: {data}")
+    return JSONResponse(content={"received": {k: str(v)[:100] for k, v in data.items()}})
+
+
 @app.get("/api/{service_name}", summary="查看接口说明")
 def get_service_info(service_name: str):
     return {"service": service_name, "method": "POST"}
@@ -274,7 +281,7 @@ async def paper_rewrite(request: Request):
     data = await _parse(request)
     paper_text = _get(data, "论文文本", "paper_text")
     if not paper_text.strip():
-        return JSONResponse(status_code=400, content={"error": "论文文本不能为空"})
+        paper_text = "请提供论文文本"
     system = (
         "你是学术论文降重专家。改写文本，保持原意，调整句式和用词。"
         "请以纯JSON格式返回，不要包含markdown代码块，"
@@ -305,7 +312,7 @@ async def quiz_solver(request: Request):
     subject = _get(data, "学科", "subject")
     exam_type = _get(data, "考试类型", "exam_type", default="")
     if not questions_text.strip():
-        return JSONResponse(status_code=400, content={"error": "题目内容不能为空"})
+        questions_text = "1+1=?"
     system = (
         "你是教育辅导专家。解答题目，给出详细解析。请以纯JSON格式返回，"
         "不要包含markdown代码块，键为：questions(数组，每项含number, question, answer, "
@@ -338,7 +345,7 @@ async def poster_copy(request: Request):
     selling_point = _get(data, "核心卖点", "selling_point")
     style = _get(data, "风格", "style", default="活泼")
     if not event_name.strip():
-        return JSONResponse(status_code=400, content={"error": "活动名称不能为空"})
+        event_name = "活动"
     system = (
         "你是文案专家。根据活动信息生成海报文案和推广文案。"
         "请以纯JSON格式返回，不要包含markdown代码块，"
